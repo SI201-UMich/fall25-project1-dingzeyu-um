@@ -44,5 +44,50 @@ def read_csv_to_dict(filename):
 
     return data
 
+data = read_csv_to_dict("samplesuperstore.csv")
 
-print(read_csv_to_dict("samplesuperstore.csv"))
+def calculate_profit_margins(data):
+    """
+    Calculate average profit margin by category and region.
+    Uses columns: Category, Region, Sales, Profit
+
+    Parameters:
+        data (list): List of dictionaries containing sales data
+
+    Returns:
+        dict: Nested dictionary with structure {Category: {Region: profit_margin}}
+    """
+    aggregates = {}
+
+    for row in data:
+        category = row["Category"]
+        region = row["Region"]
+        sales = row["Sales"]
+        profit = row["Profit"]
+
+        if category not in aggregates:
+            aggregates[category] = {}
+
+        if region not in aggregates[category]:
+            aggregates[category][region] = {"total_sales": 0, "total_profit": 0}
+
+        aggregates[category][region]["total_sales"] += sales
+        aggregates[category][region]["total_profit"] += profit
+
+    profit_margins = {}
+    for category in aggregates:
+        profit_margins[category] = {}
+        for region in aggregates[category]:
+            total_sales = aggregates[category][region]["total_sales"]
+            total_profit = aggregates[category][region]["total_profit"]
+
+            if total_sales > 0:
+                margin = (total_profit / total_sales) * 100
+            else:
+                margin = 0
+
+            profit_margins[category][region] = round(margin, 4)
+
+    return profit_margins
+
+print(calculate_profit_margins(data))
