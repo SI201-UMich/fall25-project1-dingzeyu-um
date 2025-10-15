@@ -44,7 +44,9 @@ def read_csv_to_dict(filename):
 
     return data
 
+
 data = read_csv_to_dict("samplesuperstore.csv")
+
 
 def calculate_profit_margins(data):
     """
@@ -90,4 +92,52 @@ def calculate_profit_margins(data):
 
     return profit_margins
 
+
 print(calculate_profit_margins(data))
+
+
+def calculate_discount_impact(data):
+    """
+    Calculate percentage of sales with discount > 0.2 by sub-category.
+    Uses columns: Discount, Sales, Quantity, Sub-Category
+
+    Parameters:
+        data (list): List of dictionaries containing sales data
+
+    Returns:
+        dict: Dictionary with structure {Sub-Category: discount_percentage}
+    """
+    subcategory_stats = {}
+
+    for row in data:
+        subcategory = row["Sub-Category"]
+        discount = row["Discount"]
+
+        if subcategory not in subcategory_stats:
+            subcategory_stats[subcategory] = {
+                "total_count": 0,
+                "high_discount_count": 0,
+            }
+
+        subcategory_stats[subcategory]["total_count"] += 1
+
+        # Count transactions with discount > 0.2
+        if discount > 0.2:
+            subcategory_stats[subcategory]["high_discount_count"] += 1
+
+    discount_impact = {}
+    for subcategory in subcategory_stats:
+        total = subcategory_stats[subcategory]["total_count"]
+        high_discount = subcategory_stats[subcategory]["high_discount_count"]
+
+        if total > 0:
+            percentage = (high_discount / total) * 100
+        else:
+            percentage = 0
+
+        discount_impact[subcategory] = round(percentage, 2)
+
+    return discount_impact
+
+
+print(calculate_discount_impact(data))
