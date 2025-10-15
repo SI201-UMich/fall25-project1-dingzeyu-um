@@ -93,7 +93,7 @@ def calculate_profit_margins(data):
     return profit_margins
 
 
-print(calculate_profit_margins(data))
+profit_margins = calculate_profit_margins(data)
 
 
 def calculate_discount_impact(data):
@@ -140,4 +140,47 @@ def calculate_discount_impact(data):
     return discount_impact
 
 
-print(calculate_discount_impact(data))
+discount_impact = calculate_discount_impact(data)
+
+
+def write_results_to_file(profit_margins, discount_impact, output_filename):
+    """
+    Write analysis results to a text file.
+
+    Parameters:
+        profit_margins (dict): Profit margin results
+        discount_impact (dict): Discount impact results
+        output_filename (str): Name of output file
+
+    Returns:
+        None
+    """
+    with open(output_filename, "w") as file:
+        file.write("=" * 80 + "\n")
+        file.write("SUPERSTORE DATA ANALYSIS RESULTS\n")
+        file.write("=" * 80 + "\n\n")
+
+        # Write Profit Margins
+        file.write("1. AVERAGE PROFIT MARGIN BY CATEGORY AND REGION\n")
+        file.write("-" * 80 + "\n\n")
+
+        for category in sorted(profit_margins.keys()):
+            file.write(f"Category: {category}\n")
+            for region in sorted(profit_margins[category].keys()):
+                margin = profit_margins[category][region]
+                file.write(f"  {region}: {margin}%\n")
+            file.write("\n")
+
+        # Write Discount Impact
+        file.write("\n" + "=" * 80 + "\n")
+        file.write("2. PERCENTAGE OF SALES WITH HIGH DISCOUNT (>20%) BY SUB-CATEGORY\n")
+        file.write("-" * 80 + "\n\n")
+
+        for subcategory in sorted(discount_impact.keys()):
+            percentage = discount_impact[subcategory]
+            file.write(f"{subcategory}: {percentage}%\n")
+
+        file.write("\n" + "=" * 80 + "\n")
+
+
+write_results_to_file(profit_margins, discount_impact, "123")
