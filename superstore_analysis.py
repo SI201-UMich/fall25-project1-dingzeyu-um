@@ -46,9 +46,6 @@ def read_csv_to_dict(filename):
     return data
 
 
-data = read_csv_to_dict("samplesuperstore.csv")
-
-
 def calculate_profit_margins(data):
     """
     Calculate average profit margin by category and region.
@@ -94,54 +91,60 @@ def calculate_profit_margins(data):
     return profit_margins
 
 
-profit_margins = calculate_profit_margins(data)
-
-
 def calculate_discount_impact(data):
     """
-    Calculate percentage of sales with discount > 0.2 by sub-category.
-    Uses columns: Discount, Sales, Quantity, Sub-Category
+    Calculate percentage of items (by quantity) with discount > 0.2 by sub-category and segment.
+    Uses columns: Discount, Quantity, Segment, Sub-Category
 
     Parameters:
         data (list): List of dictionaries containing sales data
 
     Returns:
-        dict: Dictionary with structure {Sub-Category: discount_percentage}
+        dict: Nested dictionary with structure {Sub-Category: {Segment: discount_percentage}}
     """
     subcategory_stats = {}
 
     for row in data:
         subcategory = row["Sub-Category"]
         discount = row["Discount"]
+        quantity = row["Quantity"]
+        segment = row["Segment"]
 
         if subcategory not in subcategory_stats:
-            subcategory_stats[subcategory] = {
-                "total_count": 0,
-                "high_discount_count": 0,
+            subcategory_stats[subcategory] = {}
+
+        if segment not in subcategory_stats[subcategory]:
+            subcategory_stats[subcategory][segment] = {
+                "total_quantity": 0,
+                "high_discount_quantity": 0,
             }
 
-        subcategory_stats[subcategory]["total_count"] += 1
+        # Accumulate total quantity
+        subcategory_stats[subcategory][segment]["total_quantity"] += quantity
 
-        # Count transactions with discount > 0.2
+        # Accumulate quantity with discount > 0.2
         if discount > 0.2:
-            subcategory_stats[subcategory]["high_discount_count"] += 1
+            subcategory_stats[subcategory][segment][
+                "high_discount_quantity"
+            ] += quantity
 
     discount_impact = {}
     for subcategory in subcategory_stats:
-        total = subcategory_stats[subcategory]["total_count"]
-        high_discount = subcategory_stats[subcategory]["high_discount_count"]
+        discount_impact[subcategory] = {}
+        for segment in subcategory_stats[subcategory]:
+            total_qty = subcategory_stats[subcategory][segment]["total_quantity"]
+            high_discount_qty = subcategory_stats[subcategory][segment][
+                "high_discount_quantity"
+            ]
 
-        if total > 0:
-            percentage = (high_discount / total) * 100
-        else:
-            percentage = 0
+            if total_qty > 0:
+                percentage = (high_discount_qty / total_qty) * 100
+            else:
+                percentage = 0
 
-        discount_impact[subcategory] = round(percentage, 2)
+            discount_impact[subcategory][segment] = round(percentage, 2)
 
     return discount_impact
-
-
-discount_impact = calculate_discount_impact(data)
 
 
 def write_results_to_file(profit_margins, discount_impact, output_filename):
@@ -174,12 +177,18 @@ def write_results_to_file(profit_margins, discount_impact, output_filename):
 
         # Write Discount Impact
         file.write("\n" + "=" * 80 + "\n")
-        file.write("2. PERCENTAGE OF SALES WITH HIGH DISCOUNT (>20%) BY SUB-CATEGORY\n")
+        file.write("2. PERCENTAGE OF ITEMS (BY QUANTITY) WITH HIGH DISCOUNT (>20%)\n")
+        file.write("   BY SUB-CATEGORY AND SEGMENT\n")
         file.write("-" * 80 + "\n\n")
 
         for subcategory in sorted(discount_impact.keys()):
-            percentage = discount_impact[subcategory]
-            file.write(f"{subcategory}: {percentage}%\n")
+            file.write(f"Sub-Category: {subcategory}\n")
+            segment_data = discount_impact[subcategory]
+
+            for segment in sorted(segment_data.keys()):
+                percentage = segment_data[segment]
+                file.write(f"  {segment}: {percentage}%\n")
+            file.write("\n")
 
         file.write("\n" + "=" * 80 + "\n")
 
@@ -243,45 +252,105 @@ class Tests(unittest.TestCase):
 
         # Test Case 1: General case with some high discounts
         test_data_1 = [
-            {"Sub-Category": "Phones", "Discount": 0.3, "Sales": 100, "Quantity": 1},
-            {"Sub-Category": "Phones", "Discount": 0.1, "Sales": 150, "Quantity": 1},
-            {"Sub-Category": "Phones", "Discount": 0.25, "Sales": 200, "Quantity": 1},
-            {"Sub-Category": "Phones", "Discount": 0.0, "Sales": 120, "Quantity": 1},
+            {
+                "Sub-Category": "Phones",
+                "Discount": 0.3,
+                "Quantity": 2,
+                "Segment": "Consumer",
+            },
+            {
+                "Sub-Category": "Phones",
+                "Discount": 0.1,
+                "Quantity": 1,
+                "Segment": "Consumer",
+            },
+            {
+                "Sub-Category": "Phones",
+                "Discount": 0.25,
+                "Quantity": 3,
+                "Segment": "Consumer",
+            },
+            {
+                "Sub-Category": "Phones",
+                "Discount": 0.0,
+                "Quantity": 4,
+                "Segment": "Consumer",
+            },
         ]
         result_1 = calculate_discount_impact(test_data_1)
-        expected_1 = {"Phones": 50.0}  # 2 out of 4 have discount > 0.2
+        expected_1 = {"Phones": {"Consumer": 50.0}}  # (2+3)/(2+1+3+4) = 5/10 = 50%
         self.assertEqual(result_1, expected_1)
         print("✓ Test 1 Passed: General case with mixed discounts")
 
-        # Test Case 2: General case with multiple sub-categories
+        # Test Case 2: General case with multiple sub-categories and segments
         test_data_2 = [
-            {"Sub-Category": "Chairs", "Discount": 0.4, "Sales": 300, "Quantity": 2},
-            {"Sub-Category": "Chairs", "Discount": 0.1, "Sales": 200, "Quantity": 1},
-            {"Sub-Category": "Tables", "Discount": 0.3, "Sales": 500, "Quantity": 1},
+            {
+                "Sub-Category": "Chairs",
+                "Discount": 0.4,
+                "Quantity": 5,
+                "Segment": "Corporate",
+            },
+            {
+                "Sub-Category": "Chairs",
+                "Discount": 0.1,
+                "Quantity": 5,
+                "Segment": "Corporate",
+            },
+            {
+                "Sub-Category": "Tables",
+                "Discount": 0.3,
+                "Quantity": 10,
+                "Segment": "Home Office",
+            },
         ]
         result_2 = calculate_discount_impact(test_data_2)
-        expected_2 = {"Chairs": 50.0, "Tables": 100.0}
+        expected_2 = {"Chairs": {"Corporate": 50.0}, "Tables": {"Home Office": 100.0}}
         self.assertEqual(result_2, expected_2)
-        print("✓ Test 2 Passed: Multiple sub-categories")
+        print("✓ Test 2 Passed: Multiple sub-categories and segments")
 
         # Test Case 3: Edge case with no high discounts
         test_data_3 = [
-            {"Sub-Category": "Paper", "Discount": 0.1, "Sales": 50, "Quantity": 5},
-            {"Sub-Category": "Paper", "Discount": 0.0, "Sales": 40, "Quantity": 4},
-            {"Sub-Category": "Paper", "Discount": 0.15, "Sales": 60, "Quantity": 6},
+            {
+                "Sub-Category": "Paper",
+                "Discount": 0.1,
+                "Quantity": 5,
+                "Segment": "Consumer",
+            },
+            {
+                "Sub-Category": "Paper",
+                "Discount": 0.0,
+                "Quantity": 3,
+                "Segment": "Consumer",
+            },
+            {
+                "Sub-Category": "Paper",
+                "Discount": 0.15,
+                "Quantity": 2,
+                "Segment": "Consumer",
+            },
         ]
         result_3 = calculate_discount_impact(test_data_3)
-        expected_3 = {"Paper": 0.0}
+        expected_3 = {"Paper": {"Consumer": 0.0}}
         self.assertEqual(result_3, expected_3)
         print("✓ Test 3 Passed: Edge case with no high discounts")
 
         # Test Case 4: Edge case with all high discounts
         test_data_4 = [
-            {"Sub-Category": "Binders", "Discount": 0.5, "Sales": 100, "Quantity": 2},
-            {"Sub-Category": "Binders", "Discount": 0.3, "Sales": 150, "Quantity": 3},
+            {
+                "Sub-Category": "Binders",
+                "Discount": 0.5,
+                "Quantity": 8,
+                "Segment": "Corporate",
+            },
+            {
+                "Sub-Category": "Binders",
+                "Discount": 0.3,
+                "Quantity": 2,
+                "Segment": "Corporate",
+            },
         ]
         result_4 = calculate_discount_impact(test_data_4)
-        expected_4 = {"Binders": 100.0}
+        expected_4 = {"Binders": {"Corporate": 100.0}}
         self.assertEqual(result_4, expected_4)
         print("✓ Test 4 Passed: Edge case with all high discounts")
 
