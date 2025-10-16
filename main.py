@@ -7,6 +7,7 @@ Collaborators: Used Claude (GenAI) for code structure and implementation assista
 """
 
 import csv
+import unittest
 
 
 def read_csv_to_dict(filename):
@@ -183,4 +184,129 @@ def write_results_to_file(profit_margins, discount_impact, output_filename):
         file.write("\n" + "=" * 80 + "\n")
 
 
-write_results_to_file(profit_margins, discount_impact, "123")
+class Tests(unittest.TestCase):
+
+    def test_calculate_profit_margins(self):
+        """Test cases for calculate_profit_margins function."""
+
+        print("Testing calculate_profit_margins()...")
+
+        # Test Case 1: General case with positive profits
+        test_data_1 = [
+            {"Category": "Technology", "Region": "West", "Sales": 1000, "Profit": 200},
+            {"Category": "Technology", "Region": "West", "Sales": 500, "Profit": 100},
+        ]
+        result_1 = calculate_profit_margins(test_data_1)
+        expected_1 = {"Technology": {"West": 20.0}}
+        self.assertEqual(result_1, expected_1)
+        print("✓ Test 1 Passed: General case with positive profits")
+
+        # Test Case 2: General case with multiple categories and regions
+        test_data_2 = [
+            {"Category": "Furniture", "Region": "East", "Sales": 2000, "Profit": 400},
+            {"Category": "Technology", "Region": "West", "Sales": 1000, "Profit": 150},
+        ]
+        result_2 = calculate_profit_margins(test_data_2)
+        expected_2 = {"Furniture": {"East": 20.0}, "Technology": {"West": 15.0}}
+        self.assertEqual(result_2, expected_2)
+        print("✓ Test 2 Passed: Multiple categories and regions")
+
+        # Test Case 3: Edge case with zero sales
+        test_data_3 = [
+            {"Category": "Office", "Region": "South", "Sales": 0, "Profit": 0}
+        ]
+        result_3 = calculate_profit_margins(test_data_3)
+        expected_3 = {"Office": {"South": 0}}
+        self.assertEqual(result_3, expected_3)
+        print("✓ Test 3 Passed: Edge case with zero sales")
+
+        # Test Case 4: Edge case with negative profit (loss)
+        test_data_4 = [
+            {
+                "Category": "Furniture",
+                "Region": "Central",
+                "Sales": 1000,
+                "Profit": -100,
+            }
+        ]
+        result_4 = calculate_profit_margins(test_data_4)
+        expected_4 = {"Furniture": {"Central": -10.0}}
+        self.assertEqual(result_4, expected_4)
+        print("✓ Test 4 Passed: Edge case with negative profit")
+
+        print("All profit margin tests passed!\n")
+
+    def test_calculate_discount_impact(self):
+        """Test cases for calculate_discount_impact function."""
+
+        print("Testing calculate_discount_impact()...")
+
+        # Test Case 1: General case with some high discounts
+        test_data_1 = [
+            {"Sub-Category": "Phones", "Discount": 0.3, "Sales": 100, "Quantity": 1},
+            {"Sub-Category": "Phones", "Discount": 0.1, "Sales": 150, "Quantity": 1},
+            {"Sub-Category": "Phones", "Discount": 0.25, "Sales": 200, "Quantity": 1},
+            {"Sub-Category": "Phones", "Discount": 0.0, "Sales": 120, "Quantity": 1},
+        ]
+        result_1 = calculate_discount_impact(test_data_1)
+        expected_1 = {"Phones": 50.0}  # 2 out of 4 have discount > 0.2
+        self.assertEqual(result_1, expected_1)
+        print("✓ Test 1 Passed: General case with mixed discounts")
+
+        # Test Case 2: General case with multiple sub-categories
+        test_data_2 = [
+            {"Sub-Category": "Chairs", "Discount": 0.4, "Sales": 300, "Quantity": 2},
+            {"Sub-Category": "Chairs", "Discount": 0.1, "Sales": 200, "Quantity": 1},
+            {"Sub-Category": "Tables", "Discount": 0.3, "Sales": 500, "Quantity": 1},
+        ]
+        result_2 = calculate_discount_impact(test_data_2)
+        expected_2 = {"Chairs": 50.0, "Tables": 100.0}
+        self.assertEqual(result_2, expected_2)
+        print("✓ Test 2 Passed: Multiple sub-categories")
+
+        # Test Case 3: Edge case with no high discounts
+        test_data_3 = [
+            {"Sub-Category": "Paper", "Discount": 0.1, "Sales": 50, "Quantity": 5},
+            {"Sub-Category": "Paper", "Discount": 0.0, "Sales": 40, "Quantity": 4},
+            {"Sub-Category": "Paper", "Discount": 0.15, "Sales": 60, "Quantity": 6},
+        ]
+        result_3 = calculate_discount_impact(test_data_3)
+        expected_3 = {"Paper": 0.0}
+        self.assertEqual(result_3, expected_3)
+        print("✓ Test 3 Passed: Edge case with no high discounts")
+
+        # Test Case 4: Edge case with all high discounts
+        test_data_4 = [
+            {"Sub-Category": "Binders", "Discount": 0.5, "Sales": 100, "Quantity": 2},
+            {"Sub-Category": "Binders", "Discount": 0.3, "Sales": 150, "Quantity": 3},
+        ]
+        result_4 = calculate_discount_impact(test_data_4)
+        expected_4 = {"Binders": 100.0}
+        self.assertEqual(result_4, expected_4)
+        print("✓ Test 4 Passed: Edge case with all high discounts")
+
+        print("All discount impact tests passed!\n")
+
+
+def main():
+    """Main function to perform the data analysis."""
+
+    csv_filename = "SampleSuperstore.csv"
+    data = read_csv_to_dict(csv_filename)
+
+    profit_margins = calculate_profit_margins(data)
+
+    discount_impact = calculate_discount_impact(data)
+
+    print("Writing results to file...")
+    output_filename = "analysis_results.txt"
+    write_results_to_file(profit_margins, discount_impact, output_filename)
+
+    print(f"Results written to '{output_filename}'")
+    print(f"  - Analyzed {len(profit_margins)} categories across regions")
+    print(f"  - Analyzed discount patterns for {len(discount_impact)} sub-categories")
+
+
+if __name__ == "__main__":
+    # unittest.main()
+    main()
